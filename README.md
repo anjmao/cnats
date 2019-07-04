@@ -30,18 +30,30 @@ cnats init
 
 #### Subscribe to subjects
 
-Subscribe to subjects.
+Subscribe to nats streaming subjects.
 ```
-cnats sub topic1 topic2
+cnats ssub topic1 topic2
 ```
 
 Subscribe to all known subjects. Internally sub command calls stan monitoring api to get all known subjects.
 ```
-cnats sub
+cnats ssub
 ```
+
+Subscribe to nats subjects.
+```
+cnats sub topic1 topic2
+```
+
 
 #### Publish to subject
 
+Publish to nats streaming.
+```
+cnats spub topic1 '{"name": "cnat"}'
+```
+
+Publish to nats.
 ```
 cnats pub topic1 '{"name": "cnat"}'
 ```

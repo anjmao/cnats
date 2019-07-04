@@ -3,12 +3,64 @@ package main
 import (
 	"encoding/json"
 	"fmt"
-	"github.com/nats-io/stan.go"
-	"github.com/urfave/cli"
 	"net/http"
 	"strings"
 	"time"
+
+	"github.com/nats-io/nats.go"
+	"github.com/nats-io/stan.go"
+	"github.com/urfave/cli"
 )
+
+func ssubActionHandler(c *cli.Context) error {
+	conf, err := readConfig()
+	if err != nil {
+		return err
+	}
+
+	clientIDOverride := c.String("client")
+	if clientIDOverride != "" {
+		conf.ClientID = clientIDOverride
+	}
+
+	conn, err := createStanConn(conf)
+	if err != nil {
+		return err
+	}
+	defer conn.Close()
+
+	subjects := c.Args()
+	if len(subjects) == 0 {
+		channels, err := getStreamingChannels(conf.URL)
+		if err != nil {
+			return fmt.Errorf("could not get channels from monitoring api: %v", err)
+		}
+		subjects = channels.Names
+	}
+
+	for _, sub := range subjects {
+		go handleStanSubscription(conn, sub)
+	}
+
+	var stop string
+	fmt.Scanln(&stop)
+
+	return nil
+}
+
+func handleStanSubscription(conn stan.Conn, subject string) {
+	fmt.Printf("subscribing to \"%s\"\n", subject)
+	_, err := conn.Subscribe(subject, func(msg *stan.Msg) {
+		fmt.Println("---------------------------------------")
+		fmt.Printf("subject:   %s\n", msg.Subject)
+		fmt.Printf("timestamp: %d\n", msg.Timestamp)
+		fmt.Printf("payload:   %s\n", string(msg.Data))
+
+	})
+	if err != nil {
+		fmt.Printf("could not subscribe to %s: %v", subject, err)
+	}
+}
 
 func subActionHandler(c *cli.Context) error {
 	conf, err := readConfig()
@@ -29,11 +81,7 @@ func subActionHandler(c *cli.Context) error {
 
 	subjects := c.Args()
 	if len(subjects) == 0 {
-		channels, err := getChannels(conf.URL)
-		if err != nil {
-			return fmt.Errorf("could not get channels from monitoring api: %v", err)
-		}
-		subjects = channels.Names
+		return nil
 	}
 
 	for _, sub := range subjects {
@@ -46,12 +94,11 @@ func subActionHandler(c *cli.Context) error {
 	return nil
 }
 
-func handleSubscription(conn stan.Conn, subject string) {
+func handleSubscription(conn *nats.Conn, subject string) {
 	fmt.Printf("subscribing to \"%s\"\n", subject)
-	_, err := conn.Subscribe(subject, func(msg *stan.Msg) {
+	_, err := conn.Subscribe(subject, func(msg *nats.Msg) {
 		fmt.Println("---------------------------------------")
 		fmt.Printf("subject:   %s\n", msg.Subject)
-		fmt.Printf("timestamp: %d\n", msg.Timestamp)
 		fmt.Printf("payload:   %s\n", string(msg.Data))
 
 	})
@@ -65,7 +112,7 @@ type channelsz struct {
 	Names     []string `json:"names"`
 }
 
-func getChannels(natsURL string) (*channelsz, error) {
+func getStreamingChannels(natsURL string) (*channelsz, error) {
 	parts := strings.Split(natsURL, ":")
 	host := parts[1]
 	stanMonitoringURL := fmt.Sprintf("http:%s:8222/streaming", host)
