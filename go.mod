@@ -1,4 +1,4 @@
-module github.com/anjmao/cnat
+module github.com/anjmao/cnats
 
 go 1.12
 

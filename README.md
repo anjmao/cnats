@@ -1,12 +1,12 @@
-# cnat
-Nats / Nats streaming command line utility for publishing and subscribing to messages.
+# cnats
+NATS / NATS streaming command line utility for publishing and subscribing to messages.
 
 ### Installation
 
 #### Go users
 
 ```
-go get -u github.com/anjmao/cnat
+go get -u github.com/anjmao/cnats
 ```
 
 #### Other users
@@ -19,29 +19,29 @@ Download release binary from https://github.com/anjmao/cnat/releases and add to 
 
 Initialize with cluser, client and url.
 ```
-cnat init -cluster test-cluster -client cnat-client -url nats://localhost:4222
+cnats init -cluster test-cluster -client cnat-client -url nats://localhost:4222
 ```
 
 Initialize with default values.
 
 ```
-cnat init
+cnats init
 ```
 
 #### Subscribe to subjects
 
 Subscribe to subjects.
 ```
-cnat sub topic1 topic2
+cnats sub topic1 topic2
 ```
 
 Subscribe to all known subjects. Internally sub command calls stan monitoring api to get all known subjects.
 ```
-cnat sub
+cnats sub
 ```
 
 #### Publish to subject
 
 ```
-cnat pub topic1 '{"name": "cnat"}'
+cnats pub topic1 '{"name": "cnat"}'
 ```

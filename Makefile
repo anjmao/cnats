@@ -1,5 +1,5 @@
 GHACCOUNT := anjmao
-NAME := cnat
+NAME := cnats
 VERSION := $(shell git describe --tags --always --dirty)
 DOCKER_IMAGE_NAME := $(GHACCOUNT)/$(NAME)
 LATFORM := $(shell go env | grep GOHOSTOS | cut -d '"' -f 2)
