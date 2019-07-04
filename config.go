@@ -15,7 +15,7 @@ type config struct {
 }
 
 const (
-	configDirName  = ".cnat"
+	configDirName  = ".cnats"
 	configFileName = "config.json"
 )
 
@@ -36,17 +36,17 @@ func saveConfig(c *config) error {
 		}
 	}
 
-	fileName := path.Join(filePath, configFileName)
-	f, err := os.OpenFile(fileName, os.O_CREATE|os.O_RDWR, 0744)
+	data, err := json.Marshal(c)
 	if err != nil {
-		return fmt.Errorf("could not create config file: %v", err)
-	}
-	defer f.Close()
-
-	if err := json.NewEncoder(f).Encode(c); err != nil {
-		return fmt.Errorf("coult not write to file: %v", err)
+		return fmt.Errorf("could not marshal config to json: %v", err)
 	}
 
+	fileName := path.Join(filePath, configFileName)
+	if err := ioutil.WriteFile(fileName, data, 0744); err != nil {
+		return fmt.Errorf("could not write config to file: %v", err)
+	}
+
+	fmt.Printf("config successfully saved to %s\n", fileName)
 	return nil
 }
 
