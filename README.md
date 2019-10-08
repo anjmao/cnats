@@ -57,3 +57,12 @@ Publish to nats.
 ```
 cnats pub topic1 '{"name": "cnat"}'
 ```
+
+### Release
+
+Before running `make release` make sure you have these tools installed.
+
+```
+GO111MODULE=off go get github.com/c4milo/github-release
+GO111MODULE=off go get github.com/mitchellh/gox 
+```
