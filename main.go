@@ -13,22 +13,12 @@ var Version = "0.0.4"
 func main() {
 	app := cli.NewApp()
 	app.Version = Version
-	app.Flags = []cli.Flag{
-		cli.StringFlag{
-			Name:  "lang, l",
-			Value: "english",
-			Usage: "Language for the greeting",
-		},
-		cli.StringFlag{
-			Name:  "config, c",
-			Usage: "Load configuration from `FILE`",
-		},
-	}
+	app.Flags = []cli.Flag{}
 
 	app.Commands = []cli.Command{
 		{
 			Name:   "init",
-			Usage:  "Initialize cnat with configuration file",
+			Usage:  "Initialize cnats with configuration file",
 			Action: initActionHandler,
 			Flags: []cli.Flag{
 				cli.StringFlag{

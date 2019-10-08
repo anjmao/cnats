@@ -31,11 +31,11 @@ func ssubActionHandler(c *cli.Context) error {
 
 	subjects := c.Args()
 	if len(subjects) == 0 {
-		channels, err := getStreamingChannels(conf.URL)
+		channels, err := getStanSubscribers(conf.URL)
 		if err != nil {
-			return fmt.Errorf("could not get channels from monitoring api: %v", err)
+			return fmt.Errorf("could not get subscribers from monitoring api: %v", err)
 		}
-		subjects = channels.Names
+		subjects = channels
 	}
 
 	for _, sub := range subjects {
@@ -68,11 +68,6 @@ func subActionHandler(c *cli.Context) error {
 		return err
 	}
 
-	clientIDOverride := c.String("client")
-	if clientIDOverride != "" {
-		conf.ClientID = clientIDOverride
-	}
-
 	conn, err := createConn(conf)
 	if err != nil {
 		return err
@@ -81,7 +76,11 @@ func subActionHandler(c *cli.Context) error {
 
 	subjects := c.Args()
 	if len(subjects) == 0 {
-		return nil
+		subs, err := getNatsSubscribers(conf.URL)
+		if err != nil {
+			return fmt.Errorf("could not get subscribers from monitoring api: %v", err)
+		}
+		subjects = subs
 	}
 
 	for _, sub := range subjects {
@@ -107,16 +106,16 @@ func handleSubscription(conn *nats.Conn, subject string) {
 	}
 }
 
-type channelsz struct {
+type stanSubsz struct {
 	ClusterID string   `json:"cluster_id"`
 	Names     []string `json:"names"`
 }
 
-func getStreamingChannels(natsURL string) (*channelsz, error) {
+func getStanSubscribers(natsURL string) ([]string, error) {
 	parts := strings.Split(natsURL, ":")
 	host := parts[1]
-	stanMonitoringURL := fmt.Sprintf("http:%s:8222/streaming", host)
-	url := fmt.Sprintf("%s/channelsz", stanMonitoringURL)
+	monitoringURL := fmt.Sprintf("http:%s:8222/streaming", host)
+	url := fmt.Sprintf("%s/channelsz", monitoringURL)
 	httpClient := &http.Client{
 		Timeout: 2 * time.Second,
 	}
@@ -126,10 +125,44 @@ func getStreamingChannels(natsURL string) (*channelsz, error) {
 	}
 	defer res.Body.Close()
 
-	channels := &channelsz{}
-	if err := json.NewDecoder(res.Body).Decode(channels); err != nil {
+	subs := &stanSubsz{}
+	if err := json.NewDecoder(res.Body).Decode(subs); err != nil {
 		return nil, err
 	}
 
-	return channels, nil
+	return subs.Names, nil
+}
+
+func getNatsSubscribers(natsURL string) ([]string, error) {
+	parts := strings.Split(natsURL, ":")
+	host := parts[1]
+	monitoringURL := fmt.Sprintf("http:%s:8222", host)
+	url := fmt.Sprintf("%s/subsz?subs=1", monitoringURL)
+	httpClient := &http.Client{
+		Timeout: 2 * time.Second,
+	}
+	res, err := httpClient.Get(url)
+	if err != nil {
+		return nil, err
+	}
+	defer res.Body.Close()
+
+	subsz := &natsSubsz{}
+	if err := json.NewDecoder(res.Body).Decode(subsz); err != nil {
+		return nil, err
+	}
+
+	var subs []string
+	for _, s := range subsz.List {
+		subs = append(subs, s.Subject)
+	}
+	return subs, nil
+}
+
+type natsSubscription struct {
+	Subject string `json:"subject"`
+}
+
+type natsSubsz struct {
+	List []natsSubscription `json:"subscriptions_list"`
 }
