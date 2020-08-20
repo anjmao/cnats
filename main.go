@@ -66,6 +66,14 @@ func main() {
 					Name:  "client",
 					Usage: "If provided overrides default client id.",
 				},
+				cli.Uint64Flag{
+					Name:  "at_seq",
+					Usage: "Message seq number for start position. (eg. at_seq=0)",
+				},
+				cli.StringFlag{
+					Name:  "at_time",
+					Usage: "Message time string in RFC3339 for start position. (eg. at_time='2020-08-20T11:30:22Z')",
+				},
 			},
 		},
 		{

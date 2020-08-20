@@ -40,11 +40,22 @@ Subscribe to all known subjects. Internally sub command calls stan monitoring ap
 cnats ssub
 ```
 
+Subscribe at given time.
+
+```
+cnats ssub topic1 -at_time="2020-08-20T11:20:22.9832464Z"
+```
+
+Subscribe at given sequence.
+
+```
+cnats ssub topic1 -at_seq=0
+```
+
 Subscribe to nats subjects.
 ```
 cnats sub topic1 topic2
 ```
-
 
 #### Publish to subject
 

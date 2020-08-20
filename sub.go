@@ -12,6 +12,12 @@ import (
 	"github.com/urfave/cli"
 )
 
+type stanSubConfig struct {
+	subject string
+	seq     *uint64
+	time    *time.Time
+}
+
 func ssubActionHandler(c *cli.Context) error {
 	conf, err := readConfig()
 	if err != nil {
@@ -21,6 +27,22 @@ func ssubActionHandler(c *cli.Context) error {
 	clientIDOverride := c.String("client")
 	if clientIDOverride != "" {
 		conf.ClientID = clientIDOverride
+	}
+
+	var seq *uint64
+	if c.IsSet("at_seq") {
+		cliseq := c.Uint64("at_seq")
+		seq = &cliseq
+	}
+
+	var timeVal *time.Time
+	if c.IsSet("at_time") {
+		timeStr := c.String("at_time")
+		parsedTime, err := time.Parse(time.RFC3339, timeStr)
+		if err != nil {
+			return fmt.Errorf("invalid time %q: %w", timeStr, err)
+		}
+		timeVal = &parsedTime
 	}
 
 	conn, err := createStanConn(conf)
@@ -39,7 +61,12 @@ func ssubActionHandler(c *cli.Context) error {
 	}
 
 	for _, sub := range subjects {
-		go handleStanSubscription(conn, sub)
+		sub := sub
+		go handleStanSubscription(conn, &stanSubConfig{
+			subject: sub,
+			seq:     seq,
+			time:    timeVal,
+		})
 	}
 
 	var stop string
@@ -48,17 +75,23 @@ func ssubActionHandler(c *cli.Context) error {
 	return nil
 }
 
-func handleStanSubscription(conn stan.Conn, subject string) {
-	fmt.Printf("subscribing to \"%s\"\n", subject)
-	_, err := conn.Subscribe(subject, func(msg *stan.Msg) {
+func handleStanSubscription(conn stan.Conn, cfg *stanSubConfig) {
+	fmt.Printf("subscribing to \"%s\"\n", cfg.subject)
+	var opts []stan.SubscriptionOption
+	if cfg.seq != nil {
+		opts = append(opts, stan.StartAtSequence(*cfg.seq))
+	}
+	if cfg.time != nil {
+		opts = append(opts, stan.StartAtTime(*cfg.time))
+	}
+	_, err := conn.Subscribe(cfg.subject, func(msg *stan.Msg) {
 		fmt.Println("---------------------------------------")
 		fmt.Printf("subject:   %s\n", msg.Subject)
-		fmt.Printf("timestamp: %d\n", msg.Timestamp)
+		fmt.Printf("time:      %s\n", time.Unix(0, msg.Timestamp).UTC().Format(time.RFC3339Nano))
 		fmt.Printf("payload:   %s\n", string(msg.Data))
-
-	})
+	}, opts...)
 	if err != nil {
-		fmt.Printf("could not subscribe to %s: %v", subject, err)
+		fmt.Printf("could not subscribe to %s: %v", cfg.subject, err)
 	}
 }
 
